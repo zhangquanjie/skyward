@@ -1,0 +1,89 @@
+--- a/lib/modules/modules.load.recovery
++++ b/lib/modules/modules.load.recovery
+@@ -85,7 +85,6 @@
+ mhi_dev_netdev.ko
+ mhi_dev_satellite.ko
+ mhi_dev_uci.ko
+ microdump_collector.ko
+-msm_drm.ko
+ msm_geni_serial.ko
+ msm_memshare.ko
+@@ -94,7 +93,6 @@
+ msm_show_resume_irq.ko
+ msm_sysstats.ko
+ nb7vpq904m.ko
+ nvmem_qfprom.ko
+-oplus_ak09970.ko
+ oplus_bsp_ist_down.ko
+ oplus_bsp_ist_up.ko
+@@ -109,6 +107,62 @@
+ oplus_chg_v2.ko
+ oplus_gpio.ko
+ oplus_nfc.ko
+ oplus_secure_common.ko
++msm_hw_fence.ko
++sync_fence.ko
++hdcp_qseecom_dlkm.ko
++altmode-glink.ko
++gh_irq_lend.ko
++msm_dma_iommu_mapping.ko
++llcc-qcom.ko
++msm-mmrm.ko
++gh_mem_notifier.ko
++qcom_va_minidump.ko
++qcom_iommu_util.ko
++fsa4480-i2c.ko
++oplus_chg.ko
++dwc3-msm.ko
++wcd_usbss_i2c.ko
++ucsi_glink.ko
++pmic_glink.ko
++redriver.ko
++i2c-msm-geni.ko
++msm_gpi.ko
++ufcs_class.ko
++pdr_interface.ko
++qmi_helpers.ko
++pinctrl-msm.ko
++qseecom_proxy.ko
++mem_buf_dev.ko
++gh_rm_drv.ko
++gh_dbl.ko
++gh_msgq.ko
++gh_arm_drv.ko
++secure_buffer.ko
++qcom_rpmh.ko
++cmd-db.ko
++qcom-scm.ko
++rproc_qcom_common.ko
++qcom_smd.ko
++qcom_glink_smem.ko
++qcom_glink.ko
++qcom_aoss.ko
++clk-qcom.ko
++gdsc-regulator.ko
++proxy-consumer.ko
++minidump.ko
++device_info.ko
++oplus_bsp_fw_update.ko
++oplus_project.ko
++buildvariant.ko
++smem.ko
++oplus_bsp_tp_notify.ko
++boot_mode.ko
++oplusboot.ko
++oplus_ftm_mode.ko
++olc.ko
++kernel_fb.ko
++panel_event_notifier.ko
++msm_ext_display.ko
+ oplus_sensor.ko
+ oplus_theia.ko
+@@ -165,7 +219,6 @@
+ stm_console.ko
+ stm_ftrace.ko
+ stm_p_basic.ko
+ stm_p_ost.ko
+-synaptics_tcm2.ko
+ synx-driver.ko
+ sysmon_subsystem_stats.ko

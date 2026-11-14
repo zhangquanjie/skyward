@@ -23,6 +23,11 @@ The binary kernel modules are not committed to this repository. They remain
 part of the user's installed firmware/vendor_boot. Build and redistribution of
 firmware-derived images must follow the applicable firmware terms.
 
+The exact vendor_boot ramdisk change, checksums, and reproduction notes are in
+[`devices/pja110/vendor_boot`](devices/pja110/vendor_boot/README.md). The only
+modified ramdisk file is `lib/modules/modules.load.recovery`; proprietary
+modules, DTB, bootconfig, and all other vendor files are unchanged.
+
 ## Verified baseline
 
 - Device: PJA110 / OP5943L1
@@ -49,6 +54,13 @@ a9b4ff807be46a88928d2786d8764f5b96c3169a8d1d6e68d87c0976414bf41e
 ```
 
 It was tested on slot B with the paired `vendor_boot_b` described above.
+
+The tested paired image is `vendor_boot_b_recovery_fixed.img` (192 MiB),
+SHA-256:
+
+```text
+0b1cc3c052ee3f835f4ed386c30c0f475430c8a01885dfef7cae8d49da8b9d00
+```
 
 The port must be tested with the paired images on the exact firmware baseline;
 an OTA can replace either partition and require rebuilding/reflashing the pair.
