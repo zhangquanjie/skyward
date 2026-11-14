@@ -5,9 +5,11 @@ model = "OnePlus Ace 2 Pro (PJA110)"
 ab = true
 soc = { hans = "第二代骁龙 8 移动平台", hant = "第二代 Snapdragon® 8 行動平台", en = "Snapdragon® 8 Gen 2 Mobile Platform" }
 os_version_prop = "ro.build.version.incremental"
-# This recovery ramdisk's Qualcomm USB gadget supports adb reliably but
-# fails to enumerate after Skyward composes MTP beside it. Keep adb alone.
-mtp = false
+# This recovery ramdisk's Qualcomm USB gadget cannot enumerate the
+# `mtp,adb` composite. Offer MTP alone while file transfer is enabled, then
+# return to adb when it is disabled.
+mtp = true
+mtp_adb = false
 
 [display]
 # Values read from the running crDroid Android 17 system with wm.

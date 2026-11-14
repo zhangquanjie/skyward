@@ -271,11 +271,14 @@ pub struct Device {
     /// System property that carries the vendor OS version.
     #[serde(default = "default_os_version_prop")]
     pub os_version_prop: String,
-    /// Whether MTP file transfer may share the recovery USB gadget with
-    /// adb. Some stock recovery gadgets cannot compose both functions and
-    /// disappear from the host when switched to `mtp,adb`.
+    /// Whether MTP file transfer is available on this recovery USB gadget.
     #[serde(default = "default_true")]
     pub mtp: bool,
+    /// Whether adb remains beside MTP while file transfer is on. Some
+    /// recovery gadgets cannot compose both functions; they use MTP alone
+    /// and return to adb when file transfer is switched off.
+    #[serde(default = "default_true")]
+    pub mtp_adb: bool,
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]
@@ -870,6 +873,7 @@ mod tests {
         assert_eq!((cfg.display.width, cfg.display.height, cfg.display.density), (1240, 2772, 480));
         assert_eq!(cfg.modules.sources, ["vendor_boot", "vendor_dlkm", "vendor"]);
         assert!(cfg.modules.load.is_empty(), "the paired vendor_boot loads display and touch before Skyward");
+        assert!(cfg.device.mtp && !cfg.device.mtp_adb, "PJA110 offers MTP alone and returns to adb when it stops");
         assert_eq!(cfg.backup.efs, ["modemst1", "modemst2", "fsg", "fsc", "persist"]);
     }
 

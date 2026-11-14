@@ -34,17 +34,18 @@ firmware-derived images must follow the applicable firmware terms.
 - Haptics: disabled because the recovery driver reports a 0 Hz resonance
 - Recovery partition size: 100 MiB
 - Vendor boot partition size: 192 MiB
-- ADB: verified in recovery with the pure `adb` USB gadget
+- USB: pure `adb` at rest; pure MTP while file transfer is enabled, with
+  Windows read/write verified; disabling file transfer restores adb
 - Data: device-encrypted storage and user credential decryption verified
 - Wi-Fi: WCN7850/Kiwi v2, scan/association/DHCP/internet verified
 
 ## Tested recovery image
 
 The final image produced during the device test was
-`skyward-v0.3.0-pja110-crDroid-Android17-v13.img` (100 MiB), SHA-256:
+`skyward-v0.3.0-pja110-crDroid-Android17-v15.img` (100 MiB), SHA-256:
 
 ```text
-063f5af09c61352e8ef6ef94e7f5c5f93db63126aa0a1e165a858a4d9325e78c
+a9b4ff807be46a88928d2786d8764f5b96c3169a8d1d6e68d87c0976414bf41e
 ```
 
 It was tested on slot B with the paired `vendor_boot_b` described above.

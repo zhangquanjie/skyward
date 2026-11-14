@@ -9,11 +9,12 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 static MTP: AtomicBool = AtomicBool::new(false);
+static MTP_ADB: AtomicBool = AtomicBool::new(true);
 
 /// What the port offers while nothing else has it.
 pub fn resting() -> &'static str {
     if MTP.load(Ordering::Relaxed) {
-        "mtp,adb"
+        if MTP_ADB.load(Ordering::Relaxed) { "mtp,adb" } else { "mtp" }
     } else {
         "adb"
     }
@@ -23,6 +24,13 @@ pub fn resting() -> &'static str {
 /// has its descriptors until it goes.
 pub fn set_mtp(on: bool) {
     MTP.store(on, Ordering::Relaxed);
+}
+
+/// Whether adb stays in the gadget while MTP is on. A gadget unable to
+/// compose the two functions offers MTP alone, then returns to adb when
+/// file transfer stops.
+pub fn set_mtp_adb(on: bool) {
+    MTP_ADB.store(on, Ordering::Relaxed);
 }
 
 /// Ask init for `config` and wait until it is in place. Going to "none"

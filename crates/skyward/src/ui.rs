@@ -204,6 +204,7 @@ struct Transfer {
 impl Transfer {
     /// Serve file transfer; the port offers it from when it next rests.
     fn start(cfg: &DeviceConfig, info: &skyward_info::DeviceInfo, zone: usize) -> Result<Transfer> {
+        skyward_sys::usb::set_mtp_adb(cfg.device.mtp_adb);
         let device = skyward_mtp::Device {
             manufacturer: cfg.device.brand.clone(),
             model: info.model.clone(),
@@ -1104,9 +1105,8 @@ pub fn run(cfg: &DeviceConfig, programs: &[Service], font: &Path, mono: &Path, r
     let locale = request.locale.as_deref().or(info.locale.as_deref());
     let named = locale.map(Lang::for_locale).transpose()?;
     app.take_settings(kept.settings(), named);
-    // A device whose stock recovery gadget cannot compose MTP and adb must
-    // keep the port on adb even if a setting saved by an earlier image had
-    // file transfer enabled.
+    // A device without an MTP function must keep the port on adb even if a
+    // setting saved by an earlier image had file transfer enabled.
     if !cfg.device.mtp {
         app.state.file_transfer = false;
     }
@@ -2612,7 +2612,7 @@ pub fn run(cfg: &DeviceConfig, programs: &[Service], font: &Path, mono: &Path, r
                     // on, or leaves it, when it comes back to rest.
                     Effect::FileTransfer(on) => {
                         if on && !cfg.device.mtp {
-                            app.file_transfer_failed(false, "MTP is disabled for this device so adb remains available", now);
+                            app.file_transfer_failed(false, "MTP is not available on this device", now);
                             continue;
                         }
                         let rests = !fastboot && !sideloading;
