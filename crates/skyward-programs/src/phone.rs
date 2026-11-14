@@ -364,10 +364,14 @@ impl Phone {
             let Some(partition) = self.partitions.iter().find(|p| p.name == name) else { continue };
             let folder = partition.at.join(DESCRIPTIONS);
             let mut files = Vec::new();
-            let main = match self.properties.get(build) {
-                Some(build) if !build.is_empty() => format!("manifest_{build}.xml"),
-                _ => "manifest.xml".to_string(),
-            };
+            // libvintf uses the SKU-specific manifest only when that file is
+            // actually present.  Some Qualcomm builds still publish a SKU
+            // property (for example `kalama`) without shipping a matching
+            // manifest_kalama.xml; their base HALs remain in manifest.xml.
+            // Skipping that file hides Gatekeeper and prevents the complete
+            // KeyMint credential chain from being started in recovery.
+            let sku = self.properties.get(build).filter(|build| !build.is_empty()).map(|build| format!("manifest_{build}.xml"));
+            let main = sku.filter(|file| folder.join(file).is_file()).unwrap_or_else(|| "manifest.xml".to_string());
             if folder.join(&main).is_file() {
                 files.push(main);
             }

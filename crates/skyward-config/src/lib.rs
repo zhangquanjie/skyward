@@ -271,6 +271,11 @@ pub struct Device {
     /// System property that carries the vendor OS version.
     #[serde(default = "default_os_version_prop")]
     pub os_version_prop: String,
+    /// Whether MTP file transfer may share the recovery USB gadget with
+    /// adb. Some stock recovery gadgets cannot compose both functions and
+    /// disappear from the host when switched to `mtp,adb`.
+    #[serde(default = "default_true")]
+    pub mtp: bool,
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]
@@ -856,6 +861,16 @@ mod tests {
         }
         assert_eq!(cfg.backup.efs, ["modemst1", "modemst2", "fsg", "fsc", "persist"]);
         assert!(cfg.backup.data_skipped.contains(&"vendor/tzstorage".to_string()));
+    }
+
+    #[test]
+    fn parses_pja110() {
+        let cfg = DeviceConfig::parse(include_str!("../../../devices/pja110.toml")).unwrap();
+        assert_eq!(cfg.device.codename, "pja110");
+        assert_eq!((cfg.display.width, cfg.display.height, cfg.display.density), (1240, 2772, 480));
+        assert_eq!(cfg.modules.sources, ["vendor_boot", "vendor_dlkm", "vendor"]);
+        assert!(cfg.modules.load.is_empty(), "the paired vendor_boot loads display and touch before Skyward");
+        assert_eq!(cfg.backup.efs, ["modemst1", "modemst2", "fsg", "fsc", "persist"]);
     }
 
     #[test]

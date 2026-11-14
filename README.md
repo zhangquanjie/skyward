@@ -2,6 +2,12 @@
 
 # Skyward
 
+> This fork adds a tested OnePlus Ace 2 Pro (PJA110), crDroid Android 17
+> downstream port. Skyward was created by
+> [kirklin](https://github.com/kirklin/skyward); the original project and this
+> fork are distributed under GPL-3.0-or-later. See
+> [PJA110-PORT.md](PJA110-PORT.md) for device-specific details.
+
 English | [简体中文](README.zh-CN.md)
 
 Skyward is a recovery written in Rust, from scratch.

@@ -136,8 +136,11 @@ impl Backlight {
 /// 14 and the K80 series and one of the K90's give it only as the level
 /// their factory tests drive the panel to, on the backlight's own scale:
 /// the 13 Ultra's panels give that level as well, and it comes to the same
-/// half of their range as the normal maximum they give.
-const NORMAL_MAX: [(&str, &str); 3] = [
+/// half of their range as the normal maximum they give. Oplus panels use
+/// their own normal-level name on the standard Qualcomm backlight scale.
+const NORMAL_MAX: [(&str, &str); 5] = [
+    ("oplus,dsi-bl-normal-max-level", "qcom,mdss-dsi-bl-max-level"),
+    ("oplus,dsi-brightness-normal-max-level", "qcom,mdss-brightness-max-level"),
     ("mi,normal-max-brightness-clone", "mi,max-brightness-clone"),
     ("mi,max-brightness-normal", "qcom,mdss-dsi-bl-max-level"),
     ("mi,mdss-dsi-fac-bl-max-level", "qcom,mdss-dsi-bl-max-level"),
@@ -1101,6 +1104,12 @@ pub fn run(cfg: &DeviceConfig, programs: &[Service], font: &Path, mono: &Path, r
     let locale = request.locale.as_deref().or(info.locale.as_deref());
     let named = locale.map(Lang::for_locale).transpose()?;
     app.take_settings(kept.settings(), named);
+    // A device whose stock recovery gadget cannot compose MTP and adb must
+    // keep the port on adb even if a setting saved by an earlier image had
+    // file transfer enabled.
+    if !cfg.device.mtp {
+        app.state.file_transfer = false;
+    }
     let mut keeper = Keeper::new(&kept);
     skyward_sys::kmsg(&format!(
         "the pages speak {:?}, {}, and the locale named is {}",
@@ -2602,6 +2611,10 @@ pub fn run(cfg: &DeviceConfig, programs: &[Service], font: &Path, mono: &Path, r
                     // A port that something else has takes file transfer
                     // on, or leaves it, when it comes back to rest.
                     Effect::FileTransfer(on) => {
+                        if on && !cfg.device.mtp {
+                            app.file_transfer_failed(false, "MTP is disabled for this device so adb remains available", now);
+                            continue;
+                        }
                         let rests = !fastboot && !sideloading;
                         match (on, transfer.take()) {
                             (true, None) => match Transfer::start(cfg, &info, app.state.time_zone) {

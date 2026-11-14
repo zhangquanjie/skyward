@@ -409,7 +409,12 @@ fn online(dir: &Path) -> Result<bool> {
 fn said_online(read: std::io::Result<String>) -> std::io::Result<bool> {
     match read {
         Ok(s) => Ok(s.trim() == "1"),
-        Err(e) if matches!(e.kind(), ErrorKind::NotFound | ErrorKind::WouldBlock) => Ok(false),
+        Err(e)
+            if matches!(e.kind(), ErrorKind::NotFound | ErrorKind::WouldBlock)
+                || e.raw_os_error() == Some(libc::ENODEV) =>
+        {
+            Ok(false)
+        }
         Err(e) => Err(e),
     }
 }
@@ -502,6 +507,10 @@ mod tests {
         assert!(!said_online(Ok("0\n".into())).unwrap());
         assert!(!said_online(Err(Error::from(ErrorKind::WouldBlock))).unwrap(), "Qualcomm's USB-C connector early in a boot");
         assert!(!said_online(Err(Error::from(ErrorKind::NotFound))).unwrap(), "a supply without the file");
+        assert!(
+            !said_online(Err(Error::from_raw_os_error(libc::ENODEV))).unwrap(),
+            "a power-supply node whose hardware is absent, as PJA110's wireless node"
+        );
         assert!(said_online(Err(Error::from(ErrorKind::PermissionDenied))).is_err(), "anything else is an error");
     }
 }

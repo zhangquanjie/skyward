@@ -5,7 +5,16 @@ use anyhow::{Context, Result};
 use std::path::{Path, PathBuf};
 
 /// Where the phone's own partitions keep the table.
-pub const FILES: [&str; 2] = ["/vendor/etc/fstab.qcom", "/odm/etc/fstab.qcom"];
+pub const FILES: [&str; 4] = [
+    "/vendor/etc/fstab.qcom",
+    "/odm/etc/fstab.qcom",
+    // AOSP-derived Android 17 device trees may name the hardware table
+    // after the build variant rather than the SoC. OnePlus PJA110's
+    // crDroid build keeps all of persist, modem and encrypted userdata in
+    // fstab.default and ships no fstab.qcom.
+    "/vendor/etc/fstab.default",
+    "/odm/etc/fstab.default",
+];
 
 /// One filesystem the phone knows about.
 #[derive(Debug, Clone, PartialEq, Eq)]

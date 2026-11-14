@@ -40,7 +40,10 @@ const WIFI: u32 = 1010;
 
 /// How long the driver may take to make its interface, the chip's firmware
 /// loading meanwhile.
-const INTERFACE_WAIT: Duration = Duration::from_secs(20);
+// WCN7850 may spend about 20 seconds trying the modem DMS service before
+// continuing with a locally administered MAC in recovery. Leave enough
+// headroom for that fallback and interface registration.
+const INTERFACE_WAIT: Duration = Duration::from_secs(30);
 
 /// How long the supplicant may take to open its control socket.
 const SOCKET_WAIT: Duration = Duration::from_secs(10);

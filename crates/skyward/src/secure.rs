@@ -51,6 +51,7 @@ const STOP_TIMEOUT: Duration = Duration::from_secs(5);
 const EARLY_LOADER: &str = "/system/bin/bootstrap/linker64";
 const RUNTIME_BUNDLE: &str = "com.android.runtime";
 const BUNDLE_LOADER: &str = "bin/linker64";
+const RECOVERY_LOADER: &str = "/system/bin/linker64";
 
 /// Which programs may register which hardware services, and where the
 /// directory for those services looks for that.
@@ -90,10 +91,21 @@ pub fn prepare_hardware_directory(wanted: &[String]) -> Result<()> {
     // installed system's programs are loaded by the installed system's
     // loader rather than by the older one a recovery carries.
     let loader = Path::new(EARLY_LOADER);
-    let from = bundle(RUNTIME_BUNDLE)?
-        .map(|at| at.join(BUNDLE_LOADER))
-        .filter(|p| p.is_file())
-        .with_context(|| format!("the installed system carries no {RUNTIME_BUNDLE}, which holds the loader its own programs ask for"))?;
+    let bundled = match bundle(RUNTIME_BUNDLE) {
+        Ok(at) => at.map(|at| at.join(BUNDLE_LOADER)).filter(|p| p.is_file()),
+        Err(e) => {
+            // PJA110's recovery kernel exposes loop devices but every read
+            // from a file-backed loop returns EIO. Its recovery ramdisk is
+            // built with the same Android generation as the installed
+            // vendor HALs, so its own linker is the compatible fallback.
+            skyward_sys::kmsg(&format!("{RUNTIME_BUNDLE} did not open; using the recovery linker: {e:#}"))?;
+            None
+        }
+    };
+    let recovery = PathBuf::from(RECOVERY_LOADER);
+    let from = bundled.or_else(|| recovery.is_file().then_some(recovery)).with_context(|| {
+        format!("neither the installed system's {RUNTIME_BUNDLE} nor the recovery carries the loader its programs ask for")
+    })?;
     let dir = loader.parent().expect("the loader is in a directory");
     fs::create_dir_all(dir).with_context(|| format!("make {}", dir.display()))?;
     // Made under the recovery's own umask the folder is root's alone, and
@@ -174,23 +186,32 @@ fn bundle(name: &str) -> Result<Option<PathBuf>> {
     let Some(file) = BUNDLE_DIRS.iter().map(|d| Path::new(d).join(format!("{name}.apex"))).find(|p| p.is_file()) else {
         return Ok(None);
     };
-    let (offset, length) = image(&file)?;
-    let device = skyward_block::loopdev::attach(&file, offset, length)?;
+    // Some Qualcomm recovery kernels create a loop device for a file on a
+    // dynamic system partition but return EIO for every read from it. Copy
+    // the stored APEX payload to recovery tmpfs first; loop over tmpfs works
+    // on those kernels and the image is small enough to keep for this boot.
+    let images = Path::new(skyward_sys::RUN).join("apex");
+    fs::create_dir_all(&images).with_context(|| format!("make {}", images.display()))?;
+    let image = images.join(format!("{name}.img"));
+    let length = extract_image(&file, &image)?;
+    let device = skyward_block::loopdev::attach(&image, 0, length)?;
     fs::create_dir_all(&at).with_context(|| format!("make {}", at.display()))?;
     skyward_block::mount::mount_ro(&device, &at)?;
     Ok(Some(at))
 }
 
 /// Where the filesystem lies inside a bundle.
-fn image(file: &Path) -> Result<(u64, u64)> {
+fn extract_image(file: &Path, out: &Path) -> Result<u64> {
     let f = fs::File::open(file).with_context(|| format!("open {}", file.display()))?;
     let mut bundle = zip::ZipArchive::new(f).with_context(|| format!("read what is in {}", file.display()))?;
-    let entry = bundle.by_name(BUNDLE_IMAGE).with_context(|| format!("{} holds no {BUNDLE_IMAGE}", file.display()))?;
+    let mut entry = bundle.by_name(BUNDLE_IMAGE).with_context(|| format!("{} holds no {BUNDLE_IMAGE}", file.display()))?;
     if entry.compression() != zip::CompressionMethod::Stored {
         anyhow::bail!("{} keeps its {BUNDLE_IMAGE} packed, which cannot be opened where it lies", file.display());
     }
-    let start = entry.data_start().with_context(|| format!("{BUNDLE_IMAGE} in {} says where it is not", file.display()))?;
-    Ok((start, entry.size()))
+    let length = entry.size();
+    let mut image = fs::File::create(out).with_context(|| format!("create {}", out.display()))?;
+    std::io::copy(&mut entry, &mut image).with_context(|| format!("extract {BUNDLE_IMAGE} from {}", file.display()))?;
+    Ok(length)
 }
 
 /// Tell the phone's service directory of the services in `wanted`, which

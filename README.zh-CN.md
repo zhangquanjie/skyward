@@ -2,6 +2,11 @@
 
 # Skyward
 
+> 本分支增加了经过实机测试的 OnePlus Ace 2 Pro（PJA110）、crDroid Android 17
+> 下游移植。Skyward 原项目由 [kirklin](https://github.com/kirklin/skyward)
+> 创建；原项目和本分支均按 GPL-3.0-or-later 发布。设备适配详情见
+> [PJA110-PORT.md](PJA110-PORT.md)。
+
 [English](README.md) | 简体中文
 
 Skyward 是使用 Rust 编写的 recovery，从零开始编写。

@@ -45,6 +45,22 @@ const WAITING_CALLERS: libc::c_int = 1 << 30;
 /// from.
 const LIBRARY_PATH: &str = "LD_LIBRARY_PATH";
 
+/// Android 17 keeps its dynamic linker in the runtime APEX.  The copy in
+/// `bin/bootstrap` is deliberately available before apexd has mounted that
+/// APEX, and is therefore the linker recovery can use for vendor services
+/// built against the installed system's newer VNDK.
+const INSTALLED_BOOTSTRAP_LINKER: &str = "/mnt/system/system/bin/bootstrap/linker64";
+const INSTALLED_BOOTSTRAP_LIBRARIES: &str = "/mnt/system/system/lib64/bootstrap";
+const INSTALLED_SYSTEM_LIBRARIES: &str = "/mnt/system/system/lib64";
+
+/// Vendor HALs are linked against the VNDK of the installed system. Running
+/// them through an older recovery linker makes them exit before registering,
+/// commonly at libvndksupport/libdl_android. Keep ordinary vendor daemons on
+/// the recovery linker; they already run there and some start before system.
+fn needs_installed_linker(path: &str) -> bool {
+    path.starts_with("/vendor/bin/hw/") && Path::new(INSTALLED_BOOTSTRAP_LINKER).is_file()
+}
+
 /// Keep each program running, one thread per program: start it, and start
 /// it again whenever it exits. They are started in the order they are
 /// given, and one that says what it will be ready with holds up those
@@ -390,9 +406,25 @@ fn run(s: &Service, who: &Credentials, given: &Given) -> Result<String> {
 /// as `who`. Where init sets it folders of libraries of its own, they are
 /// searched after those it is given here.
 fn command(s: &Service, who: &Credentials, given: &Given, handed: &[(String, OwnedFd)]) -> Command {
-    let mut cmd = Command::new(&s.path);
+    let installed_linker = needs_installed_linker(&s.path);
+    let mut cmd = match installed_linker {
+        true => {
+            let mut command = Command::new(INSTALLED_BOOTSTRAP_LINKER);
+            command.arg(&s.path);
+            command
+        }
+        false => Command::new(&s.path),
+    };
     cmd.args(&s.args).current_dir("/").stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null());
     let mut libraries = s.libraries.clone();
+    if installed_linker {
+        // Keep the recovery's libbinder ahead of the installed system's:
+        // the recovery servicemanager speaks that copy's Parcel protocol.
+        // The installed system remains the fallback for newer VNDK pieces
+        // such as libvndksupport which the recovery does not carry.
+        libraries.push(INSTALLED_SYSTEM_LIBRARIES.to_string());
+        libraries.insert(0, INSTALLED_BOOTSTRAP_LIBRARIES.to_string());
+    }
     for (name, value) in &given.environment {
         match name == LIBRARY_PATH {
             true => libraries.push(value.clone()),
@@ -515,7 +547,15 @@ pub fn reachable() -> bool {
 pub fn running(path: &str) -> Option<u32> {
     fs::read_dir("/proc").ok()?.flatten().find_map(|e| {
         let pid: u32 = e.file_name().to_str()?.parse().ok()?;
-        (fs::read_link(e.path().join("exe")).ok()? == Path::new(path)).then_some(pid)
+        if fs::read_link(e.path().join("exe")).ok()? == Path::new(path) {
+            return Some(pid);
+        }
+        // A program invoked explicitly through a dynamic linker has that
+        // linker as /proc/<pid>/exe and the real program as an argv entry.
+        // Treat it as the program so readiness, restart and cleanup retain
+        // the same semantics as a normal kernel-interpreted ELF launch.
+        let arguments = fs::read(e.path().join("cmdline")).ok()?;
+        arguments.split(|byte| *byte == 0).any(|argument| argument == path.as_bytes()).then_some(pid)
     })
 }
 

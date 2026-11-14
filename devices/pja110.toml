@@ -1,0 +1,74 @@
+[device]
+codename = "pja110"
+brand = "OnePlus"
+model = "OnePlus Ace 2 Pro (PJA110)"
+ab = true
+soc = { hans = "第二代骁龙 8 移动平台", hant = "第二代 Snapdragon® 8 行動平台", en = "Snapdragon® 8 Gen 2 Mobile Platform" }
+os_version_prop = "ro.build.version.incremental"
+# This recovery ramdisk's Qualcomm USB gadget supports adb reliably but
+# fails to enumerate after Skyward composes MTP beside it. Keep adb alone.
+mtp = false
+
+[display]
+# Values read from the running crDroid Android 17 system with wm.
+width = 1240
+height = 2772
+density = 480
+diagonal = 6.74
+corner_radius = 112
+
+[modules]
+# The paired vendor_boot image loads the complete, dependency-resolved DRM
+# chain before Skyward starts. Skyward still searches these locations for
+# modules needed by optional features such as WLAN.
+sources = ["vendor_boot", "vendor_dlkm", "vendor"]
+load = []
+
+# Qualcomm WCN7850 firmware is carried by the modem partition.  The stock
+# recovery does not mount it, so expose it to ueventd before cnss2 powers the
+# radio up.  Persist carries the board-specific WLAN configuration.
+[firmware]
+partition = "modem"
+
+[partitions]
+mounted = ["persist"]
+
+# WCN7850 (Kiwi v2) over PCIe.  The installed crDroid build loads this same
+# module, then tells cnss2 that the firmware filesystem is ready.  PJA110's
+# vendor link for WCNSS_qcom_cfg.ini points at a path that is not present in
+# recovery, so copy the real persist file into the name requested by the
+# driver instead.
+[wlan]
+modules = ["qca_cld3_kiwi_v2"]
+writes = [{ path = "/sys/kernel/cnss/fs_ready", value = "1" }]
+firmware = [
+    # persist is already mounted for the secure-world/decryption chain.
+    # Mounting the block device a second time fails with EBUSY on PJA110,
+    # so read its board file from the existing mount instead.
+    { name = "wlan/qca_cld/kiwi_v2/WCNSS_qcom_cfg.ini", path = "/mnt/vendor/persist/wlan/WCNSS_qcom_cfg.ini" },
+]
+interface = "wlan0"
+supplicant = "/vendor/bin/hw/wpa_supplicant"
+libraries = ["/system/lib64", "/vendor/lib64"]
+service = "android.hardware.wifi.supplicant.ISupplicant/default"
+probe = "http://connectivitycheck.gstatic.com/generate_204"
+
+[backup]
+efs = ["modemst1", "modemst2", "fsg", "fsc", "persist"]
+data_skipped = [
+    "vendor/tzstorage",
+    "vendor/qtee",
+    "vendor/fingerprint",
+    "vendor/fpc",
+    "vendor/goodix",
+]
+
+[wipe]
+logs = [
+    "/data/vendor/diag",
+    "/data/vendor/log",
+    "/data/vendor/ramdump",
+    "/data/vendor/ssrdump",
+    "/data/vendor/tombstones",
+    "/data/vendor/wlan_logs",
+]
