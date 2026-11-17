@@ -129,12 +129,17 @@ fn main() -> Result<()> {
             let size = partition_size(&stock)?;
             let mut img = BootImage::read(&stock)?;
             let mut rd = Ramdisk::decode(&img.ramdisk)?;
-            // A stock recovery ramdisk has no third-party tree; refuse to build
-            // on top of another custom recovery.
+            // Refuse third-party recovery trees. A previous Skyward image is
+            // accepted as a verified device baseline and its own files below
+            // are replaced in place.
             if let Some(e) = rd.entries.iter().find(|e| e.name == "FFiles" || e.name.starts_with("twres")) {
                 anyhow::bail!("{} holds {}, which is not a stock recovery", stock.display(), e.name);
             }
             let read = |p: &PathBuf| std::fs::read(p).with_context(|| format!("read {}", p.display()));
+            let put = |rd: &mut Ramdisk, name: &str, mode, data| match rd.find(name) {
+                Some(_) => rd.replace(name, data),
+                None => rd.add(name, mode, data),
+            };
             skyward_config::DeviceConfig::load(&config)?;
             rd.replace(paths::RECOVERY, read(&binary)?)?;
             // Install scripts look for the commands a stock recovery lacks
@@ -144,17 +149,17 @@ fn main() -> Result<()> {
             for command in paths::COMMANDS {
                 rd.link(command, recovery)?;
             }
-            rd.add(paths::SYSTEM_INIT, 0o755, read(&system_init)?)?;
-            rd.add(paths::CONFIG, 0o644, read(&config)?)?;
-            rd.add(paths::FONT, 0o644, read(&font)?)?;
-            rd.add(paths::MONO, 0o644, read(&mono)?)?;
-            rd.add(paths::MONO_LICENSE, 0o644, read(&mono_license)?)?;
+            put(&mut rd, paths::SYSTEM_INIT, 0o755, read(&system_init)?)?;
+            put(&mut rd, paths::CONFIG, 0o644, read(&config)?)?;
+            put(&mut rd, paths::FONT, 0o644, read(&font)?)?;
+            put(&mut rd, paths::MONO, 0o644, read(&mono)?)?;
+            put(&mut rd, paths::MONO_LICENSE, 0o644, read(&mono_license)?)?;
             // A stock ramdisk may run logd without any scheduling profiles,
             // and logd stops as soon as it cannot find the one it asks for.
             if rd.find(paths::TASK_PROFILES).is_none() {
                 rd.add(paths::TASK_PROFILES, 0o644, TASK_PROFILES.to_vec())?;
             }
-            rd.add(paths::MTP_RC, 0o644, MTP_RC.to_vec())?;
+            put(&mut rd, paths::MTP_RC, 0o644, MTP_RC.to_vec())?;
             // On an unlocked device adbd keeps root when ro.secure is 0 and
             // lets any computer in without authorization when ro.adb.secure is
             // 0; init lets a later line of a property file override an earlier

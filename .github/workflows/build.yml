@@ -121,9 +121,11 @@ jobs:
       - name: Make the tools runnable
         run: chmod +x tools/skyward tools/skyward-pack
       - name: Read the stock build the recovery is made on
+        if: matrix.device != 'pja110'
         id: stock
         run: tools/skyward-pack stock --config "devices/${{ matrix.device }}.toml" >> "$GITHUB_OUTPUT"
       - name: Restore the stock recovery
+        if: matrix.device != 'pja110'
         id: cache
         uses: actions/cache@v6
         with:
@@ -132,12 +134,23 @@ jobs:
       # Only what the recovery partition takes is read of the package,
       # which is several gigabytes in all.
       - name: Take the recovery partition out of the stock package
-        if: steps.cache.outputs.cache-hit != 'true'
+        if: matrix.device != 'pja110' && steps.cache.outputs.cache-hit != 'true'
         run: tools/skyward-pack stock --config "devices/${{ matrix.device }}.toml" --out stock/recovery.img
       - name: Check the stock recovery
+        if: matrix.device != 'pja110'
         env:
           RECOVERY: ${{ steps.stock.outputs.recovery }}
         run: echo "$RECOVERY  stock/recovery.img" | sha256sum --check
+      # PJA110 has no public full OTA URL. Its last tested Skyward image is
+      # the same 100 MiB recovery partition, with the verified kernel, DTB,
+      # AVB footer and ramdisk baseline; the packer updates Skyward's files.
+      - name: Restore the tested PJA110 recovery baseline
+        if: matrix.device == 'pja110'
+        run: |
+          mkdir -p stock
+          curl --fail --location --retry 3 --output stock/recovery.img \
+            https://github.com/zhangquanjie/skyward/releases/download/pja110-crDroid-Android17-v0.3.0-v15/skyward-v0.3.0-pja110-crDroid-Android17-v15.img
+          echo "a9b4ff807be46a88928d2786d8764f5b96c3169a8d1d6e68d87c0976414bf41e  stock/recovery.img" | sha256sum --check
       - name: Pack the recovery
         id: pack
         env:
@@ -145,7 +158,8 @@ jobs:
           STOCK: ${{ steps.stock.outputs.version }}
         run: |
           if [ "$GITHUB_REF_TYPE" = tag ]; then version="$GITHUB_REF_NAME"; else version="${GITHUB_SHA::7}"; fi
-          name="skyward-$version-$DEVICE-$STOCK"
+          if [ "$DEVICE" = pja110 ]; then stock=crDroid-Android17; else stock="$STOCK"; fi
+          name="skyward-$version-$DEVICE-$stock"
           mkdir out
           tools/skyward-pack recovery --stock stock/recovery.img --binary tools/skyward --system-init tools/system-init \
             --config "devices/$DEVICE.toml" --font resources/fonts/MiSansVF.ttf --mono resources/fonts/KirkMono-Regular.ttf \
