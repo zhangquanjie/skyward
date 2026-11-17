@@ -44,16 +44,18 @@ modules, DTB, bootconfig, and all other vendor files are unchanged.
 - Data: device-encrypted storage and user credential decryption verified
 - Wi-Fi: WCN7850/Kiwi v2, scan/association/DHCP/internet verified
 
-## Tested recovery image
+## Current recovery image
 
-The final image produced during the device test was
-`skyward-v0.3.0-pja110-crDroid-Android17-v15.img` (100 MiB), SHA-256:
+The Skyward 0.3.1 image is
+`skyward-v0.3.1-pja110-crDroid-Android17-v16.img` (100 MiB), SHA-256:
 
 ```text
-a9b4ff807be46a88928d2786d8764f5b96c3169a8d1d6e68d87c0976414bf41e
+3d7990ca81747e6ac8231e100ead7a4a13d48c7fc8878073d3f08c1bba0a9b0f
 ```
 
-It was tested on slot B with the paired `vendor_boot_b` described above.
+It was built and linted for Android arm64 by GitHub Actions, flashed to slot B,
+and boot-tested with the paired `vendor_boot_b` described above. The Skyward UI
+and the PJA110 pure-MTP USB mode both started successfully on the device.
 
 The tested paired image is `vendor_boot_b_recovery_fixed.img` (192 MiB),
 SHA-256:
