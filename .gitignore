@@ -15,3 +15,14 @@ NOTES.md
 TODO.md
 *.draft.md
 notes/
+
+# Local firmware inputs and generated PJA110 release artifacts
+crDroidAndroid-*.zip
+recovery.img
+vendor_boot.img
+vendor_boot_b_recovery_fixed.img
+skyward-v0.3.1-pja110-crDroid-Android17-v16.img
+skyward-v0.3.1-pja110-crDroid-Android17-20261118.img
+vendor_boot-20261118-recovery-fixed.img
+skyward-pja110-ota-survival-20261118.zip
+magisk/skyward-pja110-survival/skyward-recovery.img

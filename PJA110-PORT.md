@@ -1,7 +1,7 @@
 # OnePlus Ace 2 Pro (PJA110) port
 
-This downstream port targets the OnePlus Ace 2 Pro running crDroid Android 17
-with the 5.15.220 kernel. It is based on Skyward by kirklin and remains licensed
+This downstream port targets the OnePlus Ace 2 Pro running crDroid Android 17.
+It is based on Skyward by kirklin and remains licensed
 under GPL-3.0-or-later. The upstream project is:
 
 https://github.com/kirklin/skyward
@@ -32,7 +32,7 @@ modules, DTB, bootconfig, and all other vendor files are unchanged.
 
 - Device: PJA110 / OP5943L1
 - Android: 17
-- Kernel: 5.15.220-g7ec40be85325
+- Kernel: 5.15.223-g68fc396ad5e5 (current 20261118 baseline)
 - Display: 1240 x 2772 at density 480
 - Panel: `qcom,mdss_dsi_panel_AA536_P_3_A0001_dsc_cmd`
 - Touch: Synaptics S3910 (`synaptics_tcm2`)
@@ -44,7 +44,37 @@ modules, DTB, bootconfig, and all other vendor files are unchanged.
 - Data: device-encrypted storage and user credential decryption verified
 - Wi-Fi: WCN7850/Kiwi v2, scan/association/DHCP/internet verified
 
-## Current recovery image
+## Current recovery image and downloads
+
+### crDroid 20261118
+
+The image tested with crDroidAndroid-17.0-20261118-xigua-v13.1 is
+`skyward-v0.3.1-pja110-crDroid-Android17-20261118.img`, SHA-256:
+
+```text
+3df9d55f70cfe3c124a361bd2ec3f8b875ea22361931aa652eeab975a2ac5813
+```
+
+Its paired image is `vendor_boot-20261118-recovery-fixed.img`, SHA-256:
+
+```text
+17fea4f1054fd5f33a10412e87130d3a125ce711574edc78ef88ffb485038787
+```
+
+The pair was boot-tested on slot A with kernel
+`5.15.223-g68fc396ad5e5`. DRM created `/dev/dri/card0`, the AA536 panel
+bound at 120 Hz, and the Synaptics touch modules loaded.
+
+All three current artifacts are published in the
+[20261118 GitHub release](https://github.com/zhangquanjie/skyward/releases/tag/pja110-crDroid-Android17-v0.3.1-20261118).
+The exact user-facing differences are recorded in [`CHANGELOG.md`](CHANGELOG.md).
+
+The device-specific recovery wrapper is now tracked in
+[`devices/pja110/recovery`](devices/pja110/recovery), and the reproducible
+on-device repack scripts are under [`scripts`](scripts). They must be used
+together with the matching OTA's stock recovery and vendor_boot images.
+
+### Previous 5.15.220 baseline
 
 The Skyward 0.3.1 image is
 `skyward-v0.3.1-pja110-crDroid-Android17-v16.img` (100 MiB), SHA-256:
@@ -66,3 +96,17 @@ SHA-256:
 
 The port must be tested with the paired images on the exact firmware baseline;
 an OTA can replace either partition and require rebuilding/reflashing the pair.
+
+## Surviving later OTAs
+
+`skyward-pja110-ota-survival-20261118.zip` is a Magisk module that checks the
+active slot after Android finishes booting. If an OTA restored the known stock
+`modules.load.recovery`, it patches that slot's own new vendor_boot in place and
+restores the tested Skyward recovery image. It never copies an old vendor_boot
+across an OTA, because its kernel modules must match the updated kernel.
+
+For safety, an unknown module list is not modified. The module writes the
+reason to `/data/adb/modules/skyward_pja110_survival/survival.log`; in that case
+the new OTA must be reviewed and the expected list/checksums updated before the
+pair is flashed. This fail-closed behavior prevents an outdated module ordering
+from being applied blindly to a changed kernel baseline.

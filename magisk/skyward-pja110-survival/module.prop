@@ -1,0 +1,6 @@
+id=skyward_pja110_survival
+name=Skyward PJA110 OTA Survival
+version=20261118
+versionCode=20261118
+author=zhangquanjie
+description=Restores Skyward recovery and patches the matching current-slot vendor_boot after a crDroid OTA.

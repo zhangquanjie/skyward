@@ -47,6 +47,20 @@ vendor_boot module ordering.
 
 ## Verified crDroid Android 17 baseline
 
+### 20261118 / kernel 5.15.223
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Patched `vendor_boot-20261118-recovery-fixed.img` | `17fea4f1054fd5f33a10412e87130d3a125ce711574edc78ef88ffb485038787` |
+| Original `modules.load.recovery` | `6890e32e6d3c6d1f18ed36b9fd29a6933733a5a22ed6baa93d3bdb828791e027` |
+| Patched `modules.load.recovery` | `037abb1a0a95f8a08729910d67ee08015799734ac22772eed3ab224c05f303b5` |
+
+The recovery/vendor_boot pair was flashed and boot-tested on slot A. DTB and
+bootconfig were verified unchanged. The image retains the updated ROM's own
+5.15.223 modules rather than carrying modules forward from the older baseline.
+
+### Previous 5.15.220 baseline
+
 | Artifact | SHA-256 |
 | --- | --- |
 | Original `vendor_boot_b_before.img` | `6f24911335c0725787f733aacf8f42b2965761ab9880a1da0650443fcd6cbf9f` |
